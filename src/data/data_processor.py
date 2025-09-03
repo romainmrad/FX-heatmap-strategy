@@ -37,10 +37,10 @@ class DataProcessor:
         # Computing regime thresholds
         mu = dxy['ret_means'].mean()
         sigma = dxy['ret_means'].std()
-        factor = self.config.getfloat('processor.dxy', 'regime_scaling_factor')
+        factor = self.config.getfloat('processor.dxy', 'regime_returns_scaling_factor')
         lb = mu - factor * sigma
         ub = mu + factor * sigma
-        vol_bound = dxy['volatility'].quantile(0.7)
+        vol_bound = dxy['volatility'].quantile(self.config.getfloat('processor.dxy', 'regime_volatility_quantile'))
         # Classifying regimes
         conditions = [
             (dxy['ret_means'] >= ub) & (dxy['volatility'] < vol_bound),
