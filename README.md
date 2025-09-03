@@ -32,6 +32,7 @@ The following indicators are computed for each currency exchange rate:
 - RSI momentum indicator
 - MACD trend indicator
 - Discrete rolling-window $W$ quadratic variation to capture physical variance:
+
 $$\sum_{i\in W}{(r_{t_i}-r_{t_{i-1}})}^2$$
 
 ### Heatmap
