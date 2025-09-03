@@ -50,13 +50,21 @@ class DataLoader:
         self.logger.info('--> Downloading currency exchange rates')
         for t in self.config.get('tickers.currency', 'non_inverted_list').split(','):
             self.logger.info(f'------> Downloading {t}')
-            data = yf.download(t, start=self.start, end=self.end, progress=False, auto_adjust=True)['Close']
-            data.to_csv(f'data/raw/currency/{t}.csv')
+            try:
+                data = yf.download(t, start=self.start, end=self.end, progress=False, auto_adjust=True)['Close']
+                data.to_csv(f'data/raw/currency/{t}.csv')
+            except YFPricesMissingError:
+                self.logger.error(f'Invalid ticker {t}')
+                sys.exit(1)
         for t in self.config.get('tickers.currency', 'inverted_list').split(','):
             self.logger.info(f'------> Downloading {t}')
-            data = yf.download(t, start=self.start, end=self.end, progress=False, auto_adjust=True)['Close']
-            data = 1 / data
-            data.to_csv(f'data/raw/currency/{t}.csv')
+            try:
+                data = yf.download(t, start=self.start, end=self.end, progress=False, auto_adjust=True)['Close']
+                data = 1 / data
+                data.to_csv(f'data/raw/currency/{t}.csv')
+            except YFPricesMissingError:
+                self.logger.error(f'Invalid ticker {t}')
+                sys.exit(1)
 
     def download_data(self) -> None:
         """

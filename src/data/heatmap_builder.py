@@ -76,7 +76,7 @@ class HeatmapBuilder:
                 value.to_csv(f'{self.config.get('builder.paths', 'matrices')}{key}.csv')
 
     @staticmethod
-    def _build_heatmap(matrix: pd.DataFrame, path: str | os.PathLike[str]) -> None:
+    def build_heatmap(matrix: pd.DataFrame, path: str | os.PathLike[str]) -> None:
         """
         Method for building and saving a heatmap from a matrix
         :param matrix: the data matrix
@@ -95,7 +95,7 @@ class HeatmapBuilder:
             target = filename.split('.csv')[0]
             self.logger.info(f'------> Building heatmap for {target}')
             matrix = pd.read_csv(f'{self.config.get('builder.paths', 'matrices')}{filename}', index_col='currencies')
-            self._build_heatmap(matrix, f'{self.config.get('builder.paths', 'heatmaps')}{target}.png')
+            self.build_heatmap(matrix, f'{self.config.get('builder.paths', 'heatmaps')}{target}.png')
 
     def build(self):
         """

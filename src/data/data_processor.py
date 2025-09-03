@@ -87,11 +87,10 @@ class DataProcessor:
                                            index_col='Date')
             self.__build_currency_features(ticker=ticker, currency_data=current_currency)
 
-    @staticmethod
-    def __compute_quadratic_variation(values: np.ndarray) -> float:
-        return sum(np.diff(values) ** 2)
-
     def process(self) -> None:
+        """
+        Process the data
+        """
         self.logger.info('Processing data')
         self.__build_regimes()
         self.__build_all_currency_features()
