@@ -1,0 +1,101 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+skinparam ParticipantFontStyle bold
+skinparam DatabaseFontStyle bold
+skinparam CollectionsFontStyle bold
+skinparam BackgroundColor White
+skinparam TitleFontSize 25
+skinparam TitleFontStyle bold
+autonumber "<font color=blue><b>"
+
+title MATH60610A - Poject - Data Pipeline
+
+database "YFinance API" #720E9E
+collections Configuration #SeaGreen
+participant DataLoader #White
+database "Local data" #SteelBlue
+participant DataProcessor #White
+participant HeatmapBuilder #White
+collections Logs #DarkCyan
+
+group Data Pipeline
+'DataLoader sequence
+DataLoader -> DataLoader: Initialise
+activate DataLoader #LightSlateGrey
+    autonumber stop
+    DataLoader --> Logs
+    autonumber resume
+DataLoader <-> Configuration: Load\nconfiguration
+    autonumber stop
+    DataLoader --> Logs
+    autonumber resume
+DataLoader <-> "YFinance API": Download data
+    autonumber stop
+    DataLoader --> Logs
+    autonumber resume
+DataLoader -> "Local data": Store raw data
+    autonumber stop
+    DataLoader --> Logs
+    autonumber resume
+deactivate
+
+'DataProcessor sequence
+DataProcessor -> DataProcessor: Initialise
+activate DataProcessor #LightSlateGrey
+    autonumber stop
+    DataProcessor --> Logs
+    autonumber resume
+DataProcessor <-> "Local data": Load data
+    autonumber stop
+    DataProcessor --> Logs
+    autonumber resume
+DataProcessor -> DataProcessor: Build USD\nregimes
+    autonumber stop
+    DataProcessor --> Logs
+    autonumber resume
+DataProcessor -> DataProcessor: Build currency\nfeatures
+    autonumber stop
+    DataProcessor --> Logs
+    autonumber resume
+DataProcessor -> "Local data": Store processed\ndata
+    autonumber stop
+    DataProcessor --> Logs
+    autonumber resume
+deactivate
+
+'HeatmapBuilder sequence
+HeatmapBuilder -> HeatmapBuilder: Initialise
+activate HeatmapBuilder #LightSlateGrey
+    autonumber stop
+    HeatmapBuilder --> Logs
+    autonumber resume
+HeatmapBuilder <-> "Local data": Clear matrices and heatmaps
+    autonumber stop
+    HeatmapBuilder --> Logs
+    autonumber resume
+HeatmapBuilder <-> "Local data": Load processed data
+    autonumber stop
+    HeatmapBuilder --> Logs
+    autonumber resume
+HeatmapBuilder -> HeatmapBuilder: Building feature matrices
+    autonumber stop
+    HeatmapBuilder --> Logs
+    autonumber resume
+HeatmapBuilder -> "Local data": Store matrices
+    autonumber stop
+    HeatmapBuilder --> Logs
+    autonumber resume
+HeatmapBuilder <-> "Local data": Load matrices
+    autonumber stop
+    HeatmapBuilder --> Logs
+    autonumber resume
+HeatmapBuilder -> HeatmapBuilder: Build heatmaps
+    autonumber stop
+    HeatmapBuilder --> Logs
+    autonumber resume
+HeatmapBuilder -> "Local data": Store heatmaps
+deactivate
+end
+
+@enduml

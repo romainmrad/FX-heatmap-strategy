@@ -1,0 +1,11 @@
+# Basics
+logs/
+.idea/
+.venv/
+# Python cache files
+__pycache__/
+*.pyc
+# Other files
+*.DS_Store
+*.csv
+*.png
