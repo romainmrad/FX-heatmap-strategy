@@ -27,6 +27,26 @@ The data pipeline is responsible for downloading the correct data, processing it
 the heatmaps. Here is the sequence diagram:
 ![](documentation/sequence.svg)
 
+### USD Regimes
+We aim to classify each time step as a certain USD regime. To do so, we analyse the `DXY` index as
+follows:
+- Compute daily log-returns
+- Compute log-returns rolling mean $\mu_{r_t}$ to smooth out signal
+- Compute log-returns rolling standard deviation $\sigma_{r_t}$ to capture local volatility
+- Compute smoothed-out log-returns mean $\mu_r$ and standard deviation $\sigma_r$
+
+Then, we define returns and volatility threshold using two tuning parameters $\lambda_1$ and $\lambda_2$:
+- Lower-bound returns: $\text{lb}=\mu_r - \lambda_1\sigma_r$
+- Upper-bound returns: $\text{ub}=\mu_r + \lambda_1\sigma_r$
+- Volatility threshold: $\text{sb}=\text{quantile}(\lambda_2)$
+
+Finally, we follow these rules to classify the regime for a given time step $t$:
+- If $\mu_{r_t}\geq \text{ub}$ and $\sigma_{r_t}\geq \text{sb}$, regime $R_t=2$ (high returns, high volatility)
+- If $\mu_{r_t}\geq \text{ub}$ and $\sigma_{r_t}< \text{sb}$, regime $R_t=1$ (high returns, low volatility)
+- If $\mu_{r_t}< \text{lb}$ and $\sigma_{r_t}\geq \text{sb}$, regime $R_t=-1$ (low returns, high volatility)
+- If $\mu_{r_t}< \text{lb}$ and $\sigma_{r_t}< \text{sb}$, regime $R_t=-2$ (low returns, low volatility)
+- Else, the regime is $R_t=0$
+
 ### Indicators
 The following indicators are computed for each currency exchange rate:
 - RSI momentum indicator
