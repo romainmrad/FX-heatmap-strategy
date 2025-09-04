@@ -20,12 +20,16 @@ class DataLoader:
         if not os.path.isfile(config_path):
             self.logger.error(f'Configuration file not found at {config_path}')
             sys.exit(1)
+        self.config.read(config_path)
         self.logger.info('Reading configuration file')
         try:
             self.start = self.config.get('timeline', 'start')
             self.end = self.config.get('timeline', 'end')
         except configparser.NoSectionError as e:
-            self.logger.error(f'DataLoader error: {str(e)}')
+            self.logger.error(f'DataLoader: {str(e)}')
+            sys.exit(1)
+        except configparser.NoOptionError as e:
+            self.logger.error(f'DataLoader: {str(e)}')
             sys.exit(1)
 
     def __download_indices(self) -> None:

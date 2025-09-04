@@ -10,3 +10,4 @@ __pycache__/
 *.csv
 *.png
 !documentation/heatmap.png
+test.py
