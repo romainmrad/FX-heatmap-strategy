@@ -12,12 +12,13 @@ strategy.
 ## Requirements
 The following python packages are required:
 ```
-yfinance>=0.2.65
+yfinance
 git+https://github.com/romainmrad/rotating_logger.git
-pandas>=2.3.2
-numpy>=2.3.2
-ta>=0.11.0
-seaborn>=0.13.2
+pandas
+numpy
+ta
+seaborn
+matplotlib
 ```
 
 ## Data Pipeline
