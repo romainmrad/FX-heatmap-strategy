@@ -1,9 +1,10 @@
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from src.utils.dir_utils import clear_dir
 
 import pandas as pd
 import matplotlib.pyplot as plt
 from rotating_logger import RotatingLogger
-
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from multiprocessing import get_context
 import configparser
 import os
 
@@ -15,42 +16,32 @@ def build_heatmap(args: tuple[str | os.PathLike[str], str | os.PathLike[str]]) -
     """
     mat_path, png_path = args
     matrix = pd.read_csv(mat_path, index_col="currencies").to_numpy()
-    plt.imshow(matrix, cmap="magma", aspect="auto", interpolation="nearest")
+    plt.imshow(matrix, aspect="auto", interpolation="nearest")
     plt.axis("off")
     plt.savefig(png_path, bbox_inches="tight", pad_inches=0, dpi=256)
     plt.close()
-    return png_path.split('/')[-1].split('.csv')[0]
+    return os.path.basename(png_path).replace(".png", "")
 
 
 class HeatmapBuilder:
-    def __init__(self, config_path) -> None:
+    def __init__(self, config_path: str) -> None:
         """
         Initialize HeatmapBuilder object
+        :param config_path: path to config file
         """
         self.config = configparser.ConfigParser()
         self.config.read(config_path)
         self.logger = RotatingLogger()
         self.logger.info('Initializing HeatmapBuilder')
 
-    @staticmethod
-    def __clear_dir(path: str | os.PathLike[str]) -> None:
-        """
-        Clear directory contents if it exists
-        :param path: directory path
-        """
-        for file in os.listdir(path):
-            file_path = os.path.join(path, file)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-
     def __clear(self) -> None:
         """
         Clear matrices and heatmaps
         """
         self.logger.info(f'--> Clearing current heatmaps and matrices contents')
-        for r in ['nr2', 'nr1', 'r0', 'pr1', 'pr2']:
-            self.__clear_dir(f'{self.config.get('builder.paths', 'matrices')}{r}')
-            self.__clear_dir(f'{self.config.get('builder.paths', 'heatmaps')}{r}')
+        for r in ['nr1.nosync', 'pr1.nosync']:
+            clear_dir(f'{self.config.get("builder.paths", "matrices")}{r}')
+            clear_dir(f'{self.config.get("builder.paths", "heatmaps")}{r}')
 
     def __load_data(self) -> None:
         """
@@ -59,10 +50,11 @@ class HeatmapBuilder:
         self.logger.info(f'--> Loading processed data')
         self.dataframes = {}
         for filename in os.listdir(self.config.get('builder.paths', 'processed_currency')):
-            ticker = filename.split('.csv')[0]
-            self.dataframes[ticker] = pd.read_csv(f'{self.config.get('builder.paths', 'processed_currency')}{filename}',
-                                                  index_col='Date')
-        self.target = pd.read_csv(f'{self.config.get('builder.paths', 'processed_index')}DX-Y.NYB.csv',
+            ticker = filename.replace(".csv", "")
+            self.dataframes[ticker] = pd.read_csv(
+                os.path.join(self.config.get("builder.paths", "processed_currency"), filename),
+                index_col='Date')
+        self.target = pd.read_csv(os.path.join(self.config.get("builder.paths", "processed_index"), 'DX-Y.NYB.csv'),
                                   index_col='Date')
 
     @staticmethod
@@ -72,8 +64,7 @@ class HeatmapBuilder:
         :param r: regime integer value
         :return: corresponding regime directory
         """
-        values = ['nr2', 'nr1', 'r0', 'pr1', 'pr2']
-        return values[int(r) + 2]
+        return 'pr1.nosync' if r == 1 else 'nr1.nosync'
 
     def __build_matrices(self) -> None:
         """
@@ -97,9 +88,9 @@ class HeatmapBuilder:
                 self.logger.debug(f'------> Building matrix for {t}')
                 value = features.loc[t].unstack()
                 value.index.name = 'currencies'
-                value = (value - value.mean()) / value.std()
                 value.to_csv(
-                    f'{self.config.get('builder.paths', 'matrices')}{self.__get_regime_dir(regime_next)}/{t}.csv')
+                    f'{self.config.get("builder.paths", "matrices")}{self.__get_regime_dir(regime_next)}/{t}.csv')
+        self.logger.info('--> Finished building matrices')
 
     def __build_heatmaps_serial(self) -> None:
         """
@@ -107,18 +98,18 @@ class HeatmapBuilder:
         """
         self.logger.info(f'--> Building heatmaps from matrices')
         for regime in os.listdir(self.config.get('builder.paths', 'matrices')):
-            for filename in sorted(os.listdir(f'{self.config.get('builder.paths', 'matrices')}{regime}/'),
+            for filename in sorted(os.listdir(f'{self.config.get("builder.paths", "matrices")}{regime}/'),
                                    reverse=True):
                 target = filename.split('.csv')[0]
-                build_heatmap((f'{self.config.get('builder.paths', 'matrices')}{regime}/{filename}',
-                               f'{self.config.get('builder.paths', 'heatmaps')}{regime}/{target}.png'))
+                build_heatmap((f'{self.config.get("builder.paths", "matrices")}{regime}/{filename}',
+                               f'{self.config.get("builder.paths", "heatmaps")}{regime}/{target}.png'))
                 self.logger.debug(f'------> Heatmap built for {target}')
 
     def __build_heatmaps_distributed(self) -> None:
         """
         Build heatmaps from matrices using multiprocessing
         """
-        self.logger.info(f'--> Building heatmaps from matrices')
+        self.logger.info(f'--> Executing distributed heatmap construction')
         tasks = []
         for regime in os.listdir(self.config.get("builder.paths", "matrices")):
             matrix_path = f"{self.config.get('builder.paths', 'matrices')}{regime}/"
@@ -128,8 +119,7 @@ class HeatmapBuilder:
                 curr_mat_path = f"{matrix_path}{filename}"
                 curr_png_path = f"{heatmap_path}{target}.png"
                 tasks.append((curr_mat_path, curr_png_path))
-        self.logger.info('--> Executing heatmaps tasks in parallel')
-        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+        with ProcessPoolExecutor(max_workers=os.cpu_count(), mp_context=get_context("fork")) as executor:
             futures = [executor.submit(build_heatmap, task) for task in tasks]
             for future in as_completed(futures):
                 result_path = future.result()

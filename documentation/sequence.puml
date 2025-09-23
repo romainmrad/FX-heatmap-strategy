@@ -9,93 +9,72 @@ skinparam TitleFontSize 25
 skinparam TitleFontStyle bold
 autonumber "<font color=blue><b>"
 
-title MATH60610A - Poject - Data Pipeline
+title FX Heatmap Strategy
 
 database "YFinance API" #720E9E
-collections Configuration #SeaGreen
 participant DataLoader #White
 database "Local data" #SteelBlue
 participant DataProcessor #White
 participant HeatmapBuilder #White
-collections Logs #DarkCyan
+database Images #FireBrick
+participant ThermalVision #White
+database Model #GoldenRod
+participant BackTest #White
 
 group Data Pipeline
 'DataLoader sequence
-DataLoader -> DataLoader: Initialise
-activate DataLoader #LightSlateGrey
-    autonumber stop
-    DataLoader --> Logs
-    autonumber resume
-DataLoader <-> Configuration: Load\nconfiguration
-    autonumber stop
-    DataLoader --> Logs
-    autonumber resume
-DataLoader <-> "YFinance API": Download data
-    autonumber stop
-    DataLoader --> Logs
-    autonumber resume
-DataLoader -> "Local data": Store raw data
-    autonumber stop
-    DataLoader --> Logs
-    autonumber resume
-deactivate
+    group #LightBlue DataLoader
+        DataLoader -> DataLoader: Initialise
+        activate DataLoader #LightSlateGrey
+        DataLoader <-> "YFinance API": Download data
+        DataLoader -> "Local data": Store raw data
+        deactivate
+    end
 
 'DataProcessor sequence
-DataProcessor -> DataProcessor: Initialise
-activate DataProcessor #LightSlateGrey
-    autonumber stop
-    DataProcessor --> Logs
-    autonumber resume
-DataProcessor <-> "Local data": Load data
-    autonumber stop
-    DataProcessor --> Logs
-    autonumber resume
-DataProcessor -> DataProcessor: Build USD\nregimes
-    autonumber stop
-    DataProcessor --> Logs
-    autonumber resume
-DataProcessor -> DataProcessor: Build currency\nfeatures
-    autonumber stop
-    DataProcessor --> Logs
-    autonumber resume
-DataProcessor -> "Local data": Store processed\ndata
-    autonumber stop
-    DataProcessor --> Logs
-    autonumber resume
-deactivate
+    group #LightBlue DataProcessor
+        DataProcessor -> DataProcessor: Initialise
+        activate DataProcessor #LightSlateGrey
+        DataProcessor <-> "Local data": Load data
+        DataProcessor -> DataProcessor: Build USD\nregimes
+        DataProcessor -> DataProcessor: Build currency\nfeatures
+        DataProcessor -> "Local data": Store processed\ndata
+        deactivate
+    end
 
 'HeatmapBuilder sequence
-HeatmapBuilder -> HeatmapBuilder: Initialise
-activate HeatmapBuilder #LightSlateGrey
-    autonumber stop
-    HeatmapBuilder --> Logs
-    autonumber resume
-HeatmapBuilder <-> "Local data": Clear matrices and heatmaps
-    autonumber stop
-    HeatmapBuilder --> Logs
-    autonumber resume
-HeatmapBuilder <-> "Local data": Load processed data
-    autonumber stop
-    HeatmapBuilder --> Logs
-    autonumber resume
-HeatmapBuilder -> HeatmapBuilder: Building feature matrices
-    autonumber stop
-    HeatmapBuilder --> Logs
-    autonumber resume
-HeatmapBuilder -> "Local data": Store matrices
-    autonumber stop
-    HeatmapBuilder --> Logs
-    autonumber resume
-HeatmapBuilder <-> "Local data": Load matrices
-    autonumber stop
-    HeatmapBuilder --> Logs
-    autonumber resume
-HeatmapBuilder -> HeatmapBuilder: Build heatmaps
-    autonumber stop
-    HeatmapBuilder --> Logs
-    autonumber resume
-HeatmapBuilder -> "Local data": Store heatmaps
-deactivate
+    group #LightBlue HeatmapBuilder
+        HeatmapBuilder -> HeatmapBuilder: Initialise
+        activate HeatmapBuilder #LightSlateGrey
+        HeatmapBuilder <-> "Local data": Load processed data
+        HeatmapBuilder -> HeatmapBuilder: Building feature matrices
+        HeatmapBuilder -> "Local data": Store matrices
+        HeatmapBuilder -> HeatmapBuilder: Build heatmaps
+        HeatmapBuilder -> Images: Store heatmaps
+        deactivate
+    end
+end
+
+group Strategy Pipeline
+'ThermalVision sequence
+    group #LightBlue ThermalVision
+        ThermalVision -> ThermalVision: Initialise
+        activate ThermalVision #LightSlateGrey
+        ThermalVision <-> Images: Load Heatmaps
+        ThermalVision -> ThermalVision: Compile and Train CNN
+        ThermalVision -> Model: Save CNN
+        deactivate
+    end
+
+'Backtest sequence
+    group #LightBlue BackTest
+        BackTest -> BackTest: Initialise
+        activate BackTest #LightSlateGrey
+        BackTest <-> Model: Load model
+        BackTest -> BackTest: Backtest strategy
+        BackTest -> Images: Save results
+        deactivate
+    end
 end
 
 @enduml

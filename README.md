@@ -1,7 +1,7 @@
 # FX heatmaps-based trading strategy
 
 ## Introduction
-We aim to trade the different USD regimes (strong, neutral, weak) by leveraging
+We aim to trade the different USD regimes (strong or weak) by leveraging
 heatmaps to predict the different regimes. We build these heatmaps by constructing
 a matrix of $K$ indicators by $N$ currency exchange rates. Then, using python's `seaborn`,
 we transform the standardized matrix into a heatmap.
@@ -21,11 +21,9 @@ seaborn
 matplotlib
 ```
 
-## Data Pipeline
+## Strategy
 
 ### Sequence diagram
-The data pipeline is responsible for downloading the correct data, processing it and building
-the heatmaps. Here is the sequence diagram:
 ![](documentation/sequence.svg)
 
 ### USD Regimes

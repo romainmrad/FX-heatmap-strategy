@@ -1,5 +1,7 @@
 import yfinance as yf
 from rotating_logger import RotatingLogger
+from src.utils.dir_utils import clear_dir
+from src.utils.plot_utils import plot_fx_rate
 
 import configparser
 import os
@@ -9,7 +11,7 @@ from yfinance.exceptions import YFPricesMissingError
 
 
 class DataLoader:
-    def __init__(self, config_path) -> None:
+    def __init__(self, config_path: str) -> None:
         """
         Initialize the data loader
         :param config_path: path to the configuration file
@@ -32,48 +34,54 @@ class DataLoader:
             self.logger.error(f'DataLoader: {str(e)}')
             sys.exit(1)
 
+    def __clear(self) -> None:
+        """
+        Clear raw data
+        """
+        self.logger.info('--> Clearing raw data')
+        clear_dir(self.config.get("loader", "index_path"))
+        clear_dir(self.config.get("loader", "currency_path"))
+        clear_dir(self.config.get("loader", "image_path"))
+
     def __download_indices(self) -> None:
         """
         Download index data
         """
         self.logger.info('--> Downloading index data')
+        target_columns = ['Close', 'High', 'Low']
         for t in self.config.get('tickers.index', 'list').split(','):
-            self.logger.info(f'------> Downloading {t}')
             try:
-                data = yf.download(t, start=self.start, end=self.end, progress=False, auto_adjust=True)['Close']
-                data.to_csv(f'data/raw/index/{t}.csv')
+                data = yf.download(t, start=self.start, end=self.end, progress=False, auto_adjust=True)[target_columns]
+                data.columns = target_columns
+                plot_fx_rate(t, data['Close'], os.path.join(self.config.get("loader", "image_path"), f'{t}.pdf'))
+                data.to_csv(os.path.join(self.config.get("loader", "index_path"), f'{t}.csv'))
+                self.logger.info(f'------> Download complete for {t}')
             except YFPricesMissingError:
                 self.logger.error(f'Invalid ticker {t}')
                 sys.exit(1)
-
 
     def __download_currency(self) -> None:
         """
         Download currency exchange rates data
         """
         self.logger.info('--> Downloading currency exchange rates')
-        for t in self.config.get('tickers.currency', 'non_inverted_list').split(','):
-            self.logger.info(f'------> Downloading {t}')
+        target_columns = ['Close', 'High', 'Low']
+        for t in self.config.get('tickers.currency', 'list').split(','):
             try:
-                data = yf.download(t, start=self.start, end=self.end, progress=False, auto_adjust=True)['Close']
-                data.to_csv(f'data/raw/currency/{t}.csv')
-            except YFPricesMissingError:
-                self.logger.error(f'Invalid ticker {t}')
-                sys.exit(1)
-        for t in self.config.get('tickers.currency', 'inverted_list').split(','):
-            self.logger.info(f'------> Downloading {t}')
-            try:
-                data = yf.download(t, start=self.start, end=self.end, progress=False, auto_adjust=True)['Close']
-                data = 1 / data
-                data.to_csv(f'data/raw/currency/{t}.csv')
+                data = yf.download(t, start=self.start, end=self.end, progress=False, auto_adjust=True)[target_columns]
+                data.columns = target_columns
+                plot_fx_rate(t, data['Close'], os.path.join(self.config.get("loader", "image_path"), f'{t}.pdf'))
+                data.to_csv(os.path.join(self.config.get("loader", "currency_path"), f'{t}.csv'))
+                self.logger.info(f'------> Download complete for {t}')
             except YFPricesMissingError:
                 self.logger.error(f'Invalid ticker {t}')
                 sys.exit(1)
 
-    def download_data(self) -> None:
+    def load(self) -> None:
         """
         Download data
         """
         self.logger.info('Downloading data')
+        self.__clear()
         self.__download_indices()
         self.__download_currency()
