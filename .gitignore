@@ -12,3 +12,4 @@ __pycache__/
 !documentation/heatmap.png
 test.py
 *.keras
+*.ipynb
