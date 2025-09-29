@@ -79,7 +79,7 @@ class BackTest:
                 dt = (t - prev_t).days
                 for k in portfolio:
                     portfolio[k] *= np.exp(self.rate * dt / 365)
-                if dt < 1:
+                if dt < self.config.getint('backtest', 'n_days_rebalance'):
                     continue
             prev_t = t
             # Compute portfolio value in USD
@@ -133,33 +133,30 @@ class BackTest:
             dt = (t - start_date).days / 365.0
             benchmark.append(self.initial_capital * np.exp(self.rate * dt))
         benchmark = pd.Series(benchmark, index=equity.index)
+        dxy_norm = (self.dxy / self.dxy.iloc[0]) * self.initial_capital
+        dxy_norm = dxy_norm.reindex(equity.index).ffill()
         peak = equity.cummax()
         drawdown = (equity - peak) / peak
-        fig, axs = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+        fig, axs = plt.subplots(3, 1, figsize=(12, 12), sharex=True)
         axs[0].plot(equity, label="Equity Curve", color="blue")
         axs[0].plot(benchmark, label="Benchmark (cash at interest)", color="green", linestyle="--")
+        axs[0].plot(dxy_norm, label="Benchmark (DXY index)", color="orange", linestyle="--")
         axs[0].set_ylabel("Portfolio Value")
         axs[0].legend()
         axs[0].grid(True)
         axs[1].plot(drawdown, label="Drawdown", color="red")
         axs[1].set_ylabel("Drawdown")
-        axs[1].set_xlabel("Date")
         axs[1].legend()
         axs[1].grid(True)
+        sns.lineplot(ax=axs[2], data=self.predictions, linestyle="-", markers='o')
+        axs[2].set_ylabel("CNN predictions")
+        axs[2].set_xlabel("Date")
+        axs[2].legend()
+        axs[2].grid(True)
         plt.suptitle("Backtest Results", fontsize=14, fontweight="bold")
         plt.tight_layout()
         plt.savefig(os.path.join(self.config.get('backtest', 'plot_path'),
                                  f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_backtest.pdf"))
-        plt.close()
-        sns.set_style('whitegrid')
-        plt.figure(figsize=(12, 8))
-        sns.lineplot(self.predictions, linestyle="-", markers='o')
-        plt.title("Predictions over time", fontsize=14, fontweight="bold")
-        plt.xlabel('Date')
-        plt.ylabel('Prediction')
-        plt.tight_layout()
-        plt.savefig(os.path.join(self.config.get('backtest', 'plot_path'),
-                                 f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_predictions.pdf"))
         plt.close()
 
     def run(self):
