@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from tensorflow.keras.utils import load_img, img_to_array
 import configparser
 from datetime import datetime
 from rotating_logger import RotatingLogger
@@ -55,6 +54,8 @@ class BackTest:
         Run backtest and return portfolio history with a single constant interest rate
         applied to all currencies
         """
+        from tensorflow.keras.utils import load_img, img_to_array
+
         self.logger.info("Running backtest")
         common_index = self.dxy.index.intersection(self.prices.index)
         self.prices = self.prices.loc[common_index]
