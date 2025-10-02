@@ -4,7 +4,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from rotating_logger import RotatingLogger
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from multiprocessing import get_context
 import configparser
 import os
 
@@ -119,7 +118,7 @@ class HeatmapBuilder:
                 curr_mat_path = f"{matrix_path}{filename}"
                 curr_png_path = f"{heatmap_path}{target}.png"
                 tasks.append((curr_mat_path, curr_png_path))
-        with ProcessPoolExecutor(max_workers=os.cpu_count(), mp_context=get_context("fork")) as executor:
+        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
             futures = [executor.submit(build_heatmap, task) for task in tasks]
             for future in as_completed(futures):
                 result_path = future.result()

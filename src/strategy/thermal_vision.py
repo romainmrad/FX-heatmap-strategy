@@ -46,10 +46,9 @@ class ThermalVision:
         train_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
         test_ds = test_ds.map(lambda x, y: (normalization_layer(x), y))
         # Prefetch
-        import tensorflow as tf
-
-        self.train_ds = train_ds.prefetch(buffer_size=tf.data.AUTOTUNE)
-        self.test_ds = test_ds.prefetch(buffer_size=tf.data.AUTOTUNE)
+        from tensorflow.data import AUTOTUNE
+        self.train_ds = train_ds.prefetch(buffer_size=AUTOTUNE)
+        self.test_ds = test_ds.prefetch(buffer_size=AUTOTUNE)
         self.class_names = dataset.class_names
 
     def __load_model(self) -> None:

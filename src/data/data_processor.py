@@ -5,7 +5,6 @@ from ta import trend
 from src.utils.dir_utils import clear_dir
 from src.utils.plot_utils import plot_feature
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from multiprocessing import get_context
 
 import configparser
 import os
@@ -148,7 +147,7 @@ class DataProcessor:
         """
         Plot features
         """
-        with ProcessPoolExecutor(max_workers=os.cpu_count(), mp_context=get_context("fork")) as executor:
+        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
             futures = [executor.submit(plot_feature, task) for task in self.plot_tasks]
             for future in as_completed(futures):
                 result_path = future.result()

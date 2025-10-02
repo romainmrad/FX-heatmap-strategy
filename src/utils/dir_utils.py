@@ -31,10 +31,11 @@ def init_project() -> None:
     ]
     for d in dirs:
         os.makedirs(d, exist_ok=True)
-    zip_path = "./model/model.keras.zip"
-    extract_to = "./model"
-    with zipfile.ZipFile(zip_path, "r") as zip_ref:
-        zip_ref.extractall(extract_to)
+    if not os.path.exists('./model/model.keras'):
+        zip_path = "./model/model.keras.zip"
+        extract_to = "./model"
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(extract_to)
 
 
 def clear_dir(path: str | os.PathLike[str]) -> None:
