@@ -1,10 +1,7 @@
 import configparser
-import sys
 
-import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.utils import image_dataset_from_directory
 
@@ -49,6 +46,8 @@ class ThermalVision:
         train_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
         test_ds = test_ds.map(lambda x, y: (normalization_layer(x), y))
         # Prefetch
+        import tensorflow as tf
+
         self.train_ds = train_ds.prefetch(buffer_size=tf.data.AUTOTUNE)
         self.test_ds = test_ds.prefetch(buffer_size=tf.data.AUTOTUNE)
         self.class_names = dataset.class_names

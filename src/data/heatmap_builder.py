@@ -39,7 +39,7 @@ class HeatmapBuilder:
         Clear matrices and heatmaps
         """
         self.logger.info(f'--> Clearing current heatmaps and matrices contents')
-        for r in ['nr1.nosync', 'pr1.nosync']:
+        for r in ['negative', 'positive']:
             clear_dir(f'{self.config.get("builder.paths", "matrices")}{r}')
             clear_dir(f'{self.config.get("builder.paths", "heatmaps")}{r}')
 
@@ -64,7 +64,7 @@ class HeatmapBuilder:
         :param r: regime integer value
         :return: corresponding regime directory
         """
-        return 'pr1.nosync' if r == 1 else 'nr1.nosync'
+        return 'positive' if r == 1 else 'negative'
 
     def __build_matrices(self) -> None:
         """

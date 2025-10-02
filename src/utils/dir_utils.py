@@ -1,4 +1,40 @@
 import os
+import zipfile
+
+
+def init_project() -> None:
+    """
+    Initialise project directories
+    """
+    dirs = [
+        'config',
+        'data',
+        'data/backtest',
+        'data/heatmaps',
+        'data/heatmaps/negative',
+        'data/heatmaps/positive',
+        'data/matrices/negative',
+        'data/matrices/positive',
+        'data/processed/currency',
+        'data/processed/index',
+        'data/raw/currency',
+        'data/raw/index',
+        'documentation',
+        'images',
+        'images/backtest',
+        'images/feature_selection',
+        'images/feature_selection/currency',
+        'images/feature_selection/index',
+        'images/model_performance',
+        'images/timeseries',
+        'model'
+    ]
+    for d in dirs:
+        os.makedirs(d, exist_ok=True)
+    zip_path = "./model/model.keras.zip"
+    extract_to = "./model"
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        zip_ref.extractall(extract_to)
 
 
 def clear_dir(path: str | os.PathLike[str]) -> None:

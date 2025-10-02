@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import tensorflow as tf
+from tensorflow.keras.utils import load_img, img_to_array
 import configparser
 from datetime import datetime
 from rotating_logger import RotatingLogger
@@ -89,15 +89,15 @@ class BackTest:
             self.logger.debug(f"--> Rebalancing at {t.strftime('%Y-%m-%d')}: {total_value:.4f} USD")
 
             # Heatmap prediction
-            pr_path = os.path.join(heatmap_root, self.config.get('backtest', 'pr1_path'),
+            pr_path = os.path.join(heatmap_root, self.config.get('backtest', 'positive_path'),
                                    f"{t.strftime('%Y-%m-%d')}.png")
-            nr_path = os.path.join(heatmap_root, self.config.get('backtest', 'nr1_path'),
+            nr_path = os.path.join(heatmap_root, self.config.get('backtest', 'negative_path'),
                                    f"{t.strftime('%Y-%m-%d')}.png")
             if not os.path.exists(pr_path) and not os.path.exists(nr_path):
                 continue
             current_heatmap_path = pr_path if os.path.exists(pr_path) else nr_path
-            img = tf.keras.utils.load_img(current_heatmap_path, color_mode="grayscale", target_size=(256, 256))
-            img_array = tf.keras.utils.img_to_array(img)
+            img = load_img(current_heatmap_path, color_mode="grayscale", target_size=(256, 256))
+            img_array = img_to_array(img)
             img_array = np.expand_dims(img_array / 255.0, axis=0)
             prediction = self.vision.predict(img_array)
             predictions['Date'].append(t)
