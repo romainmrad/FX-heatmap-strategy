@@ -19,6 +19,7 @@ numpy
 ta
 seaborn
 matplotlib
+tensorflow
 ```
 
 ## Strategy
@@ -37,7 +38,9 @@ We compute the same indicators for each currency exchange rate at each time step
 
 ## Backtest
 
-Rebalancing the portfolio of currencies every 10 days gives us a Sharpe Ratio of 1.4
 ![](./documentation/backtest.svg)
-We start with a hypothetical 10k$ investment and the benchmark is simply placing it at the risk-free rate.
+We start with a hypothetical 10k$ investment and compare to two benchmarks:
+- placing the 10k$ at the risk-free rate
+- placing the 10k$ in the DXY index
 
+The above graph is a backtest from 2015 to 2020 with monthly rebalance, achieving 2.85 Sharpe Ratio.
