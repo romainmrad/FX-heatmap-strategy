@@ -15,7 +15,7 @@ def build_heatmap(args: tuple[str | os.PathLike[str], str | os.PathLike[str]]) -
     """
     mat_path, png_path = args
     matrix = pd.read_csv(mat_path, index_col="currencies").to_numpy()
-    plt.imshow(matrix, aspect="auto", interpolation="nearest")
+    plt.imshow(matrix, aspect="auto", interpolation="nearest", cmap='magma')
     plt.axis("off")
     plt.savefig(png_path, bbox_inches="tight", pad_inches=0, dpi=256)
     plt.close()
@@ -39,8 +39,8 @@ class HeatmapBuilder:
         """
         self.logger.info(f'--> Clearing current heatmaps and matrices contents')
         for r in ['negative', 'positive']:
-            clear_dir(f'{self.config.get("builder.paths", "matrices")}{r}')
-            clear_dir(f'{self.config.get("builder.paths", "heatmaps")}{r}')
+            clear_dir(os.path.join(self.config.get("builder.paths", "matrices"), r))
+            clear_dir(os.path.join(self.config.get("builder.paths", "heatmaps"), r))
 
     def __load_data(self) -> None:
         """
