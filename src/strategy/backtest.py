@@ -25,29 +25,28 @@ class BackTest:
         self.logger.info("Initializing BackTest")
         self.rate = self.config.getfloat('backtest', 'rate')
         self.trading_days = self.config.getint('backtest', 'trading_days')
+        self.currencies = self.config.get('backtest', 'list').split(',')
 
     def __load_data(self):
         """
-        Load DXY and exchange rates as DataFrames
+        Load DXY all data
         """
         self.logger.info("Loading data")
         idx_path = self.config.get("data", "index_path")
-        cur_path = self.config.get("data", "currency_path")
         rts_path = self.config.get("data", "rates_path")
+        spr_path = self.config.get("data", "bid_ask_spread_path")
+        # Loading DXY
         self.logger.info("--> Loading DXY index")
         dxy = pd.read_csv(
             os.path.join(idx_path, "DX-Y.NYB.csv"),
             index_col="Date",
             parse_dates=True
         )["Close"]
-        currencies = {}
-        for f in os.listdir(cur_path):
-            name = f.replace(".csv", "")
-            self.logger.info(f"--> Loading {name} exchange rate")
-            df = pd.read_csv(os.path.join(cur_path, f), index_col="Date", parse_dates=True)["Close"]
-            currencies[name] = df
-        prices = pd.DataFrame(currencies)
-        prices["USD"] = 1.0
+        # Loading exchange rates
+        self.logger.info("--> Loading Bid-Ask values")
+        self.ask = pd.read_csv(os.path.join(spr_path, 'ask.csv'), index_col="date", parse_dates=True)
+        self.bid = pd.read_csv(os.path.join(spr_path, 'bid.csv'), index_col="date", parse_dates=True)
+        # Loading interest rates
         rates = {}
         for f in os.listdir(rts_path):
             name = f.replace(".csv", "")
@@ -59,7 +58,7 @@ class BackTest:
                 rates[name] = df
         rates = pd.DataFrame(rates).ffill().bfill()
         self.dxy = dxy
-        self.prices = prices
+        # self.prices = prices
         self.rates = rates / 100
 
     def __initialise_portfolio(self) -> None:
@@ -67,7 +66,7 @@ class BackTest:
         Initialise the currencies portfolio with half USD and half FX
         """
         self.portfolio = {"USD": self.initial_capital / 2}
-        first_row = self.prices.iloc[0]
+        first_row = self.ask.iloc[0]
         for c in self.currencies:
             usd_alloc = (self.initial_capital / 2) / len(self.currencies)
             self.portfolio[c] = usd_alloc * first_row[c]
@@ -85,20 +84,35 @@ class BackTest:
         """
         total = self.portfolio["USD"]
         for c in self.currencies:
-            total += self.portfolio[c] / self.prices.loc[t][c]
+            total += self.portfolio[c] / self.bid.loc[t][c]
         return total
 
-    def __rebalance_portfolio(self, t, usd_cap, fx_cap) -> None:
+    def __rebalance_portfolio(self, t, usd_cap) -> None:
         """
         Rebalance portfolio at time t
         :param t: timestep
         :param usd_cap: USD capital allocation
-        :param fx_cap: FX capital allocation
         """
-        self.portfolio = {"USD": usd_cap}
-        for c in self.currencies:
-            fx_alloc = fx_cap / len(self.currencies)
-            self.portfolio[c] = fx_alloc * self.prices.loc[t][c]
+        current_usd = self.portfolio["USD"]
+        current_fx_val = sum(self.portfolio[c] / self.bid.loc[t][c] for c in self.currencies)
+        # Difference in USD allocation
+        delta_usd = usd_cap - current_usd
+        if delta_usd > 0:
+            # Need more USD -> sell FX at bid
+            sell_val = min(delta_usd, current_fx_val)
+            per_currency = sell_val / len(self.currencies)
+            for c in self.currencies:
+                units_to_sell = per_currency * self.bid.loc[t][c]
+                self.portfolio[c] -= units_to_sell
+                self.portfolio["USD"] += per_currency
+        elif delta_usd < 0:
+            # Need more FX -> buy FX at ask
+            buy_val = -delta_usd
+            per_currency = buy_val / len(self.currencies)
+            for c in self.currencies:
+                units_bought = per_currency * self.ask.loc[t][c]
+                self.portfolio[c] += units_bought
+                self.portfolio["USD"] -= per_currency
 
     def __get_heatmap_path(self, t) -> str | None:
         """
@@ -126,22 +140,22 @@ class BackTest:
         from tensorflow.keras.utils import load_img, img_to_array
 
         self.logger.info("Running backtest")
-        common_index = self.dxy.index.intersection(self.prices.index)
-        self.prices = self.prices.loc[common_index]
+        common_index = self.dxy.index.intersection(self.ask.index)
         self.dxy = self.dxy.loc[common_index]
         self.rates = self.rates.loc[common_index]
-        self.currencies = [c for c in self.prices.columns if c != "USD"]
-        self.prices.sort_index(inplace=True)
+        self.ask = self.ask.loc[common_index]
+        self.bid = self.bid.loc[common_index]
+        self.ask.sort_index(inplace=True)
         self.logger.info("--> Initializing Portfolio")
         # Initial portfolio
         self.__initialise_portfolio()
         # History and predictions list
         history = []
         predictions = {'Date': [], 'USD': [], 'FX': []}
-        prev_t = self.prices.index[0]
+        prev_t = self.dxy.index[0]
         # Running backtest
         self.logger.info("--> Walking through time")
-        for t, row in self.prices.iterrows():
+        for t in self.dxy.index:
             t = t
             dt = (t - prev_t).days
             # Compute interest on portfolio
@@ -167,9 +181,8 @@ class BackTest:
             predictions['USD'].append(prediction[0][0])
             predictions['FX'].append(prediction[0][1])
             usd_capital = float(prediction[0][0]) * total_value
-            fx_capital = float(prediction[0][1]) * total_value
             # Rebalance portfolio
-            self.__rebalance_portfolio(t, usd_capital, fx_capital)
+            self.__rebalance_portfolio(t, usd_capital)
             history.append({"Date": t, "Total": total_value, **self.portfolio})
 
         history_df = pd.DataFrame(history).set_index("Date")
@@ -219,7 +232,7 @@ class BackTest:
         plt.suptitle("Backtest Results", fontsize=14, fontweight="bold")
         plt.tight_layout()
         plt.savefig(os.path.join(self.config.get('backtest', 'plot_path'),
-                                 f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_backtest.svg"))
+                                 f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_backtest.pdf"))
         plt.close()
 
     def run(self):

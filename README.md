@@ -43,4 +43,4 @@ We start with a hypothetical 10k$ investment and compare to two benchmarks:
 - placing the 10k$ at the risk-free rate
 - placing the 10k$ in the DXY index
 
-The above graph is a backtest from 2015 to 2020 with monthly rebalance, achieving 2.85 Sharpe Ratio.
+The above graph is a backtest from 2015 to 2020 with monthly rebalance, achieving 3.712 Sharpe Ratio.
