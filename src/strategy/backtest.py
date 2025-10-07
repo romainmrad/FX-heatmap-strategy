@@ -289,7 +289,7 @@ class BackTest:
         plt.suptitle("Backtest Results", fontsize=14, fontweight="bold")
         plt.tight_layout()
         plt.savefig(os.path.join(self.config.get('backtest', 'plot_path'),
-                                 f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_backtest.svg"))
+                                 f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_backtest.pdf"))
         plt.close()
 
     @staticmethod
