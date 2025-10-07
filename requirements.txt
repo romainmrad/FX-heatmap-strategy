@@ -1,6 +1,6 @@
 rotating-logger @ git+https://github.com/romainmrad/rotating_logger.git@adfaec7ee5f6f3c2ce25c375f05ce044799208db
 yfinance
-tensorflow
+tensorflow==2.16.2
 pandas
 numpy
 ta

@@ -13,3 +13,4 @@ __pycache__/
 test.py
 *.ipynb
 *.keras
+src/strategy/MC_backtest.py

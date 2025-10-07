@@ -1,0 +1,19 @@
+[project]
+name = "projecta"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.10.6",
+    "numpy>=1.26.4",
+    "pandas>=2.3.3",
+    "rotating-logger",
+    "scikit-learn>=1.7.2",
+    "seaborn>=0.13.2",
+    "setuptools==68.2.2",
+    "ta>=0.11.0",
+    "tensorflow==2.16.2",
+    "yfinance>=0.2.66",
+]
+
+[tool.uv.sources]
+rotating-logger = { git = "https://github.com/romainmrad/rotating_logger.git", rev = "adfaec7ee5f6f3c2ce25c375f05ce044799208db" }

@@ -6,6 +6,7 @@ import seaborn as sns
 import configparser
 from datetime import datetime
 from rotating_logger import RotatingLogger
+from typing import Literal
 
 from src.strategy.thermal_vision import ThermalVision
 
@@ -17,6 +18,8 @@ class BackTest:
         :param config_path: path to config file
         :param vision_model: vision model
         """
+        self.history_df = None
+        self.predictions_df = None
         self.config = configparser.ConfigParser()
         self.config.read(config_path)
         self.initial_capital = self.config.getfloat('backtest', 'initial_capital')
@@ -60,6 +63,9 @@ class BackTest:
         self.dxy = dxy
         # self.prices = prices
         self.rates = rates / 100
+        # Loading Monte Carlo bounds
+        self.lb = pd.read_csv(self.config.get("data", "monte_carlo_lower"), index_col="Date", parse_dates=True)
+        self.ub = pd.read_csv(self.config.get("data", "monte_carlo_upper"), index_col="Date", parse_dates=True)
 
     def __initialise_portfolio(self) -> None:
         """
@@ -176,7 +182,7 @@ class BackTest:
             else:
                 self.logger.info(f"------>   {k}: {v:.2%}")
         stats = pd.DataFrame(list(stats.items()), columns=["Metric", "Value"])
-        stats.to_csv(os.path.join(self.config.get('backtest', 'history_path'),
+        stats.to_csv(os.path.join(self.config.get('backtest', 'stats_path'),
                                   f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_backtest_stats.csv"), index=False)
 
     def __backtest(self) -> None:
@@ -236,7 +242,10 @@ class BackTest:
         history_df.to_csv(os.path.join(self.config.get('backtest', 'history_path'),
                                        f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_backtest_history.csv"))
         self.history_df = history_df
-        self.predictions = pd.DataFrame(predictions).set_index("Date")
+        predictions_df = pd.DataFrame(predictions).set_index("Date")
+        predictions_df.to_csv(os.path.join(self.config.get('backtest', 'predictions_path'),
+                                           f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_backtest_predictions.csv"))
+        self.predictions = predictions_df
         self.logger.info("Backtest complete")
         self.__compute_performance_stats()
 
@@ -256,6 +265,12 @@ class BackTest:
         peak = equity.cummax()
         drawdown = (equity - peak) / peak
         fig, axs = plt.subplots(3, 1, figsize=(12, 12), sharex=True)
+        # Plotting equity curve
+        axs[0].plot([], [], color='grey', alpha=0.5, label='Monte Carlo bounds')
+        for c in self.lb.columns:
+            sns.lineplot(ax=axs[0], data=self.lb[c], color='grey', alpha=0.1)
+        for c in self.ub.columns:
+            sns.lineplot(ax=axs[0], data=self.ub[c], color='grey', alpha=0.1)
         axs[0].plot(equity, label="Equity Curve", color="blue")
         axs[0].plot(benchmark, label="Benchmark (cash at interest)", color="green", linestyle="--")
         axs[0].plot(dxy_norm, label="Benchmark (DXY index)", color="orange", linestyle="--")
@@ -266,18 +281,47 @@ class BackTest:
         axs[1].set_ylabel("Drawdown")
         axs[1].legend()
         axs[1].grid(True)
-        sns.lineplot(ax=axs[2], data=self.predictions, linestyle="-", markers='o')
+        sns.lineplot(ax=axs[2], data=self.predictions_df, linestyle="-", markers='o')
         axs[2].set_ylabel("CNN predictions -- Portfolio Weights")
         axs[2].set_xlabel("Date")
-        axs[2].legend()
+        axs[2].legend(loc='center right')
         axs[2].grid(True)
         plt.suptitle("Backtest Results", fontsize=14, fontweight="bold")
         plt.tight_layout()
         plt.savefig(os.path.join(self.config.get('backtest', 'plot_path'),
-                                 f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_backtest.pdf"))
+                                 f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_backtest.svg"))
         plt.close()
 
+    @staticmethod
+    def __load_latest_file(key: Literal['history', 'predictions'], path: str) -> pd.DataFrame:
+        """
+        Load latest backtest result file in path
+        :param key: type of file to load (history, predictions)
+        :param path: Directory to look in
+        :return: Dataframe to load
+        """
+        files = [f for f in os.listdir(path)]
+        latest_file = max(
+            files,
+            key=lambda f: datetime.strptime(f.replace(f"_backtest_{key}.csv", ""), "%Y-%m-%d %H:%M:%S")
+        )
+        df_latest = pd.read_csv(os.path.join(path, latest_file), index_col='Date', parse_dates=True)
+        return df_latest
+
     def run(self):
+        """
+        Run backtest
+        """
         self.__load_data()
         self.__backtest()
+        self.__plot_results()
+
+    def visualise(self):
+        """
+        Plot last results
+        """
+        self.__load_data()
+        self.history_df = self.__load_latest_file(key='history', path=self.config.get('backtest', 'history_path'))
+        self.predictions_df = self.__load_latest_file(key='predictions',
+                                                   path=self.config.get('backtest', 'predictions_path'))
         self.__plot_results()
