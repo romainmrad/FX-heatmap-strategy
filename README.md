@@ -43,4 +43,16 @@ We start with a hypothetical 10k$ investment and compare to two benchmarks:
 - placing the 10k$ at the risk-free rate
 - placing the 10k$ in the DXY index
 
-The above graph is a backtest from 2015 to 2020 with monthly rebalance, achieving 3.15 Sharpe Ratio.
+Performance statistics are logged into the day's log file:
+```
+2025-10-07 09:46:54,280 - INFO     - --> Performance Summary:
+2025-10-07 09:46:54,280 - INFO     - ------>   Total Return: 71.32%
+2025-10-07 09:46:54,280 - INFO     - ------>   Annualized Return: 16.68%
+2025-10-07 09:46:54,280 - INFO     - ------>   Annualized Volatility: 4.42%
+2025-10-07 09:46:54,280 - INFO     - ------>   Sharpe Ratio: 3.262
+2025-10-07 09:46:54,280 - INFO     - ------>   Sortino Ratio: 3.828
+2025-10-07 09:46:54,280 - INFO     - ------>   Max Drawdown: -3.79%
+2025-10-07 09:46:54,280 - INFO     - ------>   Calmar Ratio: 4.399
+2025-10-07 09:46:54,281 - INFO     - ------>   Average Daily Return: 0.04%
+2025-10-07 09:46:54,281 - INFO     - ------>   Daily Volatility: 0.23%
+```

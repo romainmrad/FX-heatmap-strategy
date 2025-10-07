@@ -132,6 +132,53 @@ class BackTest:
             return nr_path
         return None
 
+    def __compute_performance_stats(self):
+        """
+        Compute and log performance statistics from the backtest results
+        """
+        self.logger.info("--> Computing performance statistics")
+
+        returns = self.history_df["Total"].pct_change().dropna()
+        mu = returns.mean()
+        sigma = returns.std()
+        rfr = self.rates['USD'].mean() / self.trading_days  # daily risk-free rate
+
+        # Core metrics
+        sharpe_ratio = np.sqrt(self.trading_days) * (mu - rfr) / sigma
+        total_return = (self.history_df["Total"].iloc[-1] / self.history_df["Total"].iloc[0]) - 1
+        annualized_return = (1 + total_return) ** (self.trading_days / len(returns)) - 1
+        annualized_volatility = sigma * np.sqrt(self.trading_days)
+        # Drawdown-related metrics
+        cumulative_returns = (1 + returns).cumprod()
+        rolling_max = cumulative_returns.cummax()
+        drawdowns = cumulative_returns / rolling_max - 1
+        max_drawdown = drawdowns.min()
+        # Risk-adjusted ratios
+        sortino_ratio = np.sqrt(self.trading_days) * (mu - rfr) / returns[returns < 0].std()
+        calmar_ratio = annualized_return / abs(max_drawdown) if max_drawdown != 0 else np.nan
+        # Store results
+        stats = {
+            "Total Return": total_return,
+            "Annualized Return": annualized_return,
+            "Annualized Volatility": annualized_volatility,
+            "Sharpe Ratio": sharpe_ratio,
+            "Sortino Ratio": sortino_ratio,
+            "Max Drawdown": max_drawdown,
+            "Calmar Ratio": calmar_ratio,
+            "Average Daily Return": mu,
+            "Daily Volatility": sigma
+        }
+        # Log results
+        self.logger.info("--> Performance Summary:")
+        for k, v in stats.items():
+            if "Ratio" in k:
+                self.logger.info(f"------>   {k}: {v:.3f}")
+            else:
+                self.logger.info(f"------>   {k}: {v:.2%}")
+        stats = pd.DataFrame(list(stats.items()), columns=["Metric", "Value"])
+        stats.to_csv(os.path.join(self.config.get('backtest', 'history_path'),
+                                  f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_backtest_stats.csv"), index=False)
+
     def __backtest(self) -> None:
         """
         Run backtest and return portfolio history with a single constant interest rate
@@ -191,12 +238,7 @@ class BackTest:
         self.history_df = history_df
         self.predictions = pd.DataFrame(predictions).set_index("Date")
         self.logger.info("Backtest complete")
-        returns = history_df["Total"].pct_change()
-        mu = returns.mean()
-        sigma = returns.std()
-        rfr = self.rates['USD'].mean()
-        SR = np.sqrt(self.trading_days) * (mu - ((1 + rfr) ** (1 / 252) - 1)) / sigma
-        self.logger.info(f"Strategy Sharpe Ratio: {SR}")
+        self.__compute_performance_stats()
 
     def __plot_results(self):
         """
