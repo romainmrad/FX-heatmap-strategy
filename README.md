@@ -12,14 +12,16 @@ strategy.
 ## Requirements
 The following python packages are required:
 ```
+rotating-logger @ git+https://github.com/romainmrad/rotating_logger.git@adfaec7ee5f6f3c2ce25c375f05ce044799208db
 yfinance
-git+https://github.com/romainmrad/rotating_logger.git
+tensorflow
 pandas
 numpy
 ta
-seaborn
 matplotlib
-tensorflow
+seaborn
+scikit-learn
+setuptools==68.2.2
 ```
 
 ## Strategy
